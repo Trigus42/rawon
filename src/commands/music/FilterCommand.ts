@@ -5,11 +5,11 @@ import { CommandContext } from "../../structures/CommandContext.js";
 import { Command } from "../../utils/decorators/Command.js";
 import { inVC, sameVC, validVC } from "../../utils/decorators/MusicUtil.js";
 import { createEmbed } from "../../utils/functions/createEmbed.js";
-import { filterArgs } from "../../utils/functions/ffmpegArgs.js";
+import { audioFilters } from "../../utils/functions/ffmpegArgs.js";
 
 type FilterSubCmd = "disable" | "enable" | "status";
 
-const slashFilterChoices = Object.keys(filterArgs).map(x => ({ name: x, value: x }));
+const slashFilterChoices = Object.keys(audioFilters).map(x => ({ name: x, value: x }));
 
 @Command({
     aliases: [],
@@ -90,9 +90,9 @@ export class FilterCommand extends BaseCommand {
                 ctx.args[0] as string | undefined
             )?.toLowerCase() as unknown as string
         ] as FilterSubCmd | undefined;
-        const filter = (ctx.options?.getString("filter") ?? ctx.args[subcmd ? 1 : 0] as string | undefined)?.toLowerCase() as keyof typeof filterArgs;
+        const filter = (ctx.options?.getString("filter") ?? ctx.args[subcmd ? 1 : 0] as string | undefined)?.toLowerCase() as keyof typeof audioFilters;
         if (subcmd === "enable" || subcmd === "disable") {
-            if (!filterArgs[filter]) {
+            if (!audioFilters[filter]) {
                 return ctx.reply({
                     embeds: [createEmbed("error", i18n.__("commands.music.filter.specifyFilter"))]
                 });
@@ -109,7 +109,7 @@ export class FilterCommand extends BaseCommand {
             });
         }
 
-        if (filterArgs[filter]) {
+        if (audioFilters[filter]) {
             return ctx.reply({
                 embeds: [
                     createEmbed("info", i18n.__mf("commands.music.filter.currentState", {
@@ -127,7 +127,7 @@ export class FilterCommand extends BaseCommand {
             });
         }
 
-        const keys = Object.keys(filterArgs) as (keyof typeof filterArgs)[]
+        const keys = Object.keys(audioFilters) as (keyof typeof audioFilters)[]
         return ctx.reply({
             embeds: [
                 createEmbed("info")

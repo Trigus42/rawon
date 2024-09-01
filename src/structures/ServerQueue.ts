@@ -2,10 +2,11 @@ import { clearTimeout } from "node:timers";
 import type { AudioPlayer, AudioPlayerPlayingState, AudioResource, VoiceConnection } from "@discordjs/voice";
 import { AudioPlayerStatus, createAudioPlayer } from "@discordjs/voice";
 import type { TextChannel, Snowflake } from "discord.js";
+import type { Category } from "sponsorblock-api";
 import i18n from "../config/index.js";
 import type { LoopMode, QueueSong } from "../typings/index.js";
 import { createEmbed } from "../utils/functions/createEmbed.js";
-import type { filterArgs } from "../utils/functions/ffmpegArgs.js";
+import type { audioFilters } from "../utils/functions/ffmpegArgs.js";
 import { play } from "../utils/handlers/GeneralUtil.js";
 import { SongManager } from "../utils/structures/SongManager.js";
 import type { Rawon } from "./Rawon.js";
@@ -13,6 +14,7 @@ import type { Rawon } from "./Rawon.js";
 const nonEnum = { enumerable: false };
 
 export class ServerQueue {
+    public sponsorBlockCategories: Category[] = [];
     public stayInVC = this.client.config.stayInVCAfterFinished;
     public readonly player: AudioPlayer = createAudioPlayer();
     public connection: VoiceConnection | null = null;
@@ -21,7 +23,7 @@ export class ServerQueue {
     public readonly songs: SongManager;
     public loopMode: LoopMode = "OFF";
     public shuffle = false;
-    public filters: Partial<Record<keyof typeof filterArgs, boolean>> = {};
+    public filters: Partial<Record<keyof typeof audioFilters, boolean>> = {};
 
     private _volume = this.client.config.defaultVolume;
     private _lastVSUpdateMsg: Snowflake | null = null;
@@ -125,7 +127,7 @@ export class ServerQueue {
             });
     }
 
-    public setFilter(filter: keyof typeof filterArgs, state: boolean): void {
+    public setFilter(filter: keyof typeof audioFilters, state: boolean): void {
         const before = this.filters[filter];
         this.filters[filter] = state;
 
@@ -133,6 +135,14 @@ export class ServerQueue {
             this.playing = false;
             void play(this.textChannel.guild, (this.player.state.resource as AudioResource<QueueSong>).metadata.key, true);
         }
+    }
+
+    public enableSponsorBlockCategories(categories: Category[]): void {
+        this.sponsorBlockCategories = [...new Set([...this.sponsorBlockCategories, ...categories])];
+    }
+
+    public disableSponsorBlockCategories(categories: Category[]): void {
+        this.sponsorBlockCategories = this.sponsorBlockCategories.filter(x => !categories.includes(x));
     }
 
     public stop(): void {

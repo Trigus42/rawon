@@ -4,6 +4,9 @@ import { AudioPlayerError, createAudioResource, entersState, StreamType, VoiceCo
 import type { Guild } from "discord.js";
 import { ChannelType } from "discord.js";
 import prism from "prism-media";
+import type { Segment } from "sponsorblock-api";
+import { SponsorBlock, ResponseError } from "sponsorblock-api";
+import { v6 as uuidv6 } from "uuid";
 import i18n from "../../../config/index.js";
 import { createEmbed } from "../../functions/createEmbed.js";
 import { ffmpegArgs } from "../../functions/ffmpegArgs.js";
@@ -46,8 +49,23 @@ export async function play(guild: Guild, nextSong?: string, wasIdle?: boolean): 
         return;
     }
 
+    // Get sponsorblock segments of user-chosen segment categories
+    let segmentsToSkip: Segment[] = [];
+    if (queue.sponsorBlockCategories.length > 0) {
+        const sponsorBlock = new SponsorBlock(uuidv6());
+        try {
+            segmentsToSkip = await sponsorBlock.getSegments(song.song.id, queue.sponsorBlockCategories);
+        } catch (error) {
+            if (error instanceof ResponseError) {
+                queue.client.debugLog.logData("error", "PLAY_HANDLER", `Failed to get sponsorblock segments for ${guild.name}(${guild.id}). Reason: ${error.message}`);
+            }
+        }
+    }
+
+    console.log(segmentsToSkip, queue.sponsorBlockCategories, ffmpegArgs(queue.filters, segmentsToSkip));
+
     const stream = new prism.FFmpeg({
-        args: ffmpegArgs(queue.filters)
+        args: ffmpegArgs(queue.filters, segmentsToSkip)
     });
     await getStream(queue.client, song.song.url).then(x => x.pipe(stream as unknown as NodeJS.WritableStream));
 
